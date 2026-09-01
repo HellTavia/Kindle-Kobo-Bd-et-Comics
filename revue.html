@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<title>Relecture des cases — bd_to_kobo</title>
+<style>
+  :root { color-scheme: light; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: -apple-system, Segoe UI, Arial, sans-serif;
+    background: #2b2b2b; color: #eee; height: 100vh; display: flex; flex-direction: column;
+  }
+  header {
+    padding: 10px 14px; background: #1e1e1e; display: flex; align-items: center;
+    gap: 12px; flex-wrap: wrap; border-bottom: 1px solid #444;
+  }
+  header h1 { font-size: 15px; margin: 0; font-weight: 600; color: #fff; }
+  header .spacer { flex: 1; }
+  button, input[type=number] {
+    font: inherit; padding: 6px 12px; border-radius: 6px; border: 1px solid #555;
+    background: #3a3a3a; color: #eee; cursor: pointer;
+  }
+  button:hover { background: #4a4a4a; }
+  button.primary { background: #2f6fed; border-color: #2f6fed; }
+  button.primary:hover { background: #4a83f0; }
+  button.danger { background: #7a2020; border-color: #7a2020; }
+  button:disabled { opacity: .4; cursor: default; }
+  input[type=number] { width: 64px; }
+  #status { font-size: 13px; color: #aaa; }
+  #dropzone {
+    flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column;
+    gap: 14px; text-align: center; padding: 30px;
+  }
+  #dropzone p { max-width: 480px; line-height: 1.5; color: #ccc; }
+  #main { flex: 1; display: none; overflow: hidden; position: relative; flex-direction: column; }
+  #stage-wrap { flex: 1 1 auto; min-height: 0; position: relative; overflow: auto; text-align: center; padding: 20px; }
+  #stage { position: relative; display: inline-block; }
+  #stage img { display: block; max-width: none; }
+  .box {
+    position: absolute; border: 2px solid #ff3b3b; background: rgba(255,59,59,0.08);
+    cursor: move;
+  }
+  .box.selected { border-color: #2fed6b; background: rgba(47,237,107,0.12); z-index: 5; }
+  .box .idx {
+    position: absolute; top: -1px; left: -1px; background: #ff3b3b; color: #fff;
+    font-size: 11px; padding: 1px 5px; border-radius: 0 0 4px 0; font-weight: 600;
+  }
+  .box.selected .idx { background: #2fed6b; color: #113; }
+  .handle {
+    position: absolute; width: 14px; height: 14px; background: #fff; border: 2px solid #2fed6b;
+    border-radius: 50%; transform: translate(-50%, -50%);
+  }
+  .handle.nw { top: 0; left: 0; cursor: nwse-resize; }
+  .handle.ne { top: 0; left: 100%; cursor: nesw-resize; }
+  .handle.sw { top: 100%; left: 0; cursor: nesw-resize; }
+  .handle.se { top: 100%; left: 100%; cursor: nwse-resize; }
+  #footer {
+    padding: 8px 14px; background: #1e1e1e; border-top: 1px solid #444;
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  }
+  #pageInfo { font-size: 13px; color: #ccc; min-width: 110px; text-align: center; }
+  #help { font-size: 12px; color: #888; margin-left: auto; }
+  #thumbs {
+    display: flex; gap: 4px; overflow-x: auto; padding: 6px 14px; background: #1a1a1a;
+    border-top: 1px solid #333;
+  }
+  #thumbs .t {
+    flex: 0 0 auto; width: 34px; height: 46px; background: #444; border: 2px solid transparent;
+    border-radius: 3px; cursor: pointer; font-size: 10px; color: #aaa; display: flex;
+    align-items: center; justify-content: center; position: relative;
+  }
+  #thumbs .t.current { border-color: #2f6fed; color: #fff; }
+  #thumbs .t.edited::after {
+    content: ""; position: absolute; top: 2px; right: 2px; width: 6px; height: 6px;
+    background: #ffb020; border-radius: 50%;
+  }
+</style>
+</head>
+<body>
+
+<div id="dropzone">
+  <h2>Relecture des cases détectées</h2>
+  <p>
+    Ouvrez le dossier généré par <code>--export-review</code> (celui qui contient
+    <code>boxes.json</code> et le sous-dossier <code>pages/</code>).
+  </p>
+  <input type="file" id="folderInput" webkitdirectory directory multiple>
+</div>
+
+<div id="main">
+  <header>
+    <h1>Relecture des cases</h1>
+    <span id="status"></span>
+    <div class="spacer"></div>
+    <button id="addBtn">+ Ajouter une case</button>
+    <button id="delBtn" class="danger" disabled>Supprimer la case</button>
+    <button id="zoomOut">−</button>
+    <button id="zoomIn">+</button>
+    <button id="saveBtn" class="primary">Enregistrer boxes.json</button>
+  </header>
+
+  <div id="stage-wrap">
+    <div id="stage"></div>
+  </div>
+
+  <div id="thumbs"></div>
+
+  <div id="footer">
+    <button id="prevBtn">◀ Page précédente</button>
+    <span id="pageInfo">–</span>
+    <button id="nextBtn">Page suivante ▶</button>
+    <span id="help">Glisser une case pour la déplacer · coins pour redimensionner · clic pour sélectionner · Suppr pour effacer</span>
+  </div>
+</div>
+
+<script>
+let data = null;          // { pages: [...] }
+let dirHandleFiles = null;
+let curPage = 0;
+let scale = 1;
+let selectedIdx = -1;
+let editedPages = new Set();
+let drawing = null;       // en cours de création d'une nouvelle case
+let dragState = null;     // en cours de déplacement/redimension
+
+const stage = document.getElementById('stage');
+const stageWrap = document.getElementById('stage-wrap');
+const pageInfo = document.getElementById('pageInfo');
+const statusEl = document.getElementById('status');
+const thumbsEl = document.getElementById('thumbs');
+const delBtn = document.getElementById('delBtn');
+
+document.getElementById('folderInput').addEventListener('change', onFolderChosen);
+document.getElementById('prevBtn').addEventListener('click', () => gotoPage(curPage - 1));
+document.getElementById('nextBtn').addEventListener('click', () => gotoPage(curPage + 1));
+document.getElementById('addBtn').addEventListener('click', () => { drawing = 'armed'; stage.style.cursor = 'crosshair'; });
+document.getElementById('delBtn').addEventListener('click', deleteSelected);
+document.getElementById('zoomIn').addEventListener('click', () => setScale(scale * 1.25));
+document.getElementById('zoomOut').addEventListener('click', () => setScale(scale / 1.25));
+document.getElementById('saveBtn').addEventListener('click', saveJson);
+document.addEventListener('keydown', (e) => {
+  if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIdx >= 0 && document.activeElement.tagName !== 'INPUT') {
+    e.preventDefault();
+    deleteSelected();
+  }
+});
+
+let fileMap = {}; // relative path (lowercase) -> File
+
+async function onFolderChosen(e) {
+  const files = Array.from(e.target.files);
+  if (!files.length) return;
+  fileMap = {};
+  let boxesFile = null;
+  for (const f of files) {
+    const rel = f.webkitRelativePath.toLowerCase();
+    fileMap[rel] = f;
+    if (rel.endsWith('boxes.json')) boxesFile = f;
+  }
+  if (!boxesFile) {
+    alert("boxes.json introuvable dans ce dossier. Vérifiez que vous avez choisi le bon dossier (celui généré par --export-review).");
+    return;
+  }
+  const text = await boxesFile.text();
+  data = JSON.parse(text);
+  document.getElementById('dropzone').style.display = 'none';
+  document.getElementById('main').style.display = 'flex';
+  document.getElementById('main').style.flexDirection = 'column';
+  buildThumbs();
+  gotoPage(0);
+}
+
+function findPageImageFile(pageEntry) {
+  const target = ('pages/' + pageEntry.file).toLowerCase();
+  for (const rel in fileMap) {
+    if (rel.endsWith(target)) return fileMap[rel];
+  }
+  return null;
+}
+
+function buildThumbs() {
+  thumbsEl.innerHTML = '';
+  data.pages.forEach((pg, i) => {
+    const d = document.createElement('div');
+    d.className = 't';
+    d.textContent = i + 1;
+    d.title = pg.file;
+    d.addEventListener('click', () => gotoPage(i));
+    thumbsEl.appendChild(d);
+  });
+}
+
+function refreshThumbClasses() {
+  const kids = thumbsEl.children;
+  for (let i = 0; i < kids.length; i++) {
+    kids[i].classList.toggle('current', i === curPage);
+    kids[i].classList.toggle('edited', editedPages.has(i));
+  }
+  const cur = kids[curPage];
+  if (cur) cur.scrollIntoView({ inline: 'center', block: 'nearest' });
+}
+
+async function gotoPage(i) {
+  if (!data || i < 0 || i >= data.pages.length) return;
+  curPage = i;
+  selectedIdx = -1;
+  delBtn.disabled = true;
+  const pg = data.pages[i];
+  pageInfo.textContent = `Page ${i + 1} / ${data.pages.length}`;
+  statusEl.textContent = `${pg.panels.length} case(s) — ${pg.file}`;
+
+  const file = findPageImageFile(pg);
+  stage.innerHTML = '';
+  if (!file) {
+    stage.textContent = 'Image introuvable : ' + pg.file;
+    return;
+  }
+  const url = URL.createObjectURL(file);
+  const img = document.createElement('img');
+  img.src = url;
+  img.draggable = false;
+  await new Promise(res => { img.onload = res; });
+
+  // ajuste l'échelle initiale pour tenir dans la fenêtre
+  const availW = stageWrap.clientWidth - 40;
+  const availH = stageWrap.clientHeight - 40;
+  const fitScale = Math.min(availW / pg.width, availH / pg.height, 1);
+  scale = fitScale > 0 ? fitScale : 1;
+
+  stage.appendChild(img);
+  renderScale();
+  renderBoxes();
+  refreshThumbClasses();
+}
+
+function setScale(s) {
+  scale = Math.max(0.1, Math.min(4, s));
+  renderScale();
+  renderBoxes();
+}
+
+function renderScale() {
+  const pg = data.pages[curPage];
+  stage.style.width = (pg.width * scale) + 'px';
+  stage.style.height = (pg.height * scale) + 'px';
+  const img = stage.querySelector('img');
+  if (img) { img.style.width = (pg.width * scale) + 'px'; img.style.height = (pg.height * scale) + 'px'; }
+}
+
+function renderBoxes() {
+  stage.querySelectorAll('.box').forEach(b => b.remove());
+  const pg = data.pages[curPage];
+  pg.panels.forEach((box, idx) => {
+    const el = document.createElement('div');
+    el.className = 'box' + (idx === selectedIdx ? ' selected' : '');
+    positionBox(el, box);
+    const label = document.createElement('div');
+    label.className = 'idx';
+    label.textContent = idx + 1;
+    el.appendChild(label);
+
+    if (idx === selectedIdx) {
+      ['nw', 'ne', 'sw', 'se'].forEach(corner => {
+        const h = document.createElement('div');
+        h.className = 'handle ' + corner;
+        h.addEventListener('mousedown', (e) => startResize(e, idx, corner));
+        el.appendChild(h);
+      });
+    }
+
+    el.addEventListener('mousedown', (e) => {
+      if (e.target !== el && e.target.className !== 'idx') return;
+      selectedIdx = idx;
+      delBtn.disabled = false;
+      renderBoxes();
+      startMove(e, idx);
+    });
+    stage.appendChild(el);
+  });
+}
+
+function positionBox(el, box) {
+  const [x0, y0, x1, y1] = box;
+  el.style.left = (x0 * scale) + 'px';
+  el.style.top = (y0 * scale) + 'px';
+  el.style.width = ((x1 - x0) * scale) + 'px';
+  el.style.height = ((y1 - y0) * scale) + 'px';
+}
+
+function markEdited() {
+  editedPages.add(curPage);
+  refreshThumbClasses();
+}
+
+function startMove(e, idx) {
+  e.preventDefault();
+  const pg = data.pages[curPage];
+  const box = pg.panels[idx];
+  const startX = e.clientX, startY = e.clientY;
+  const orig = box.slice();
+  function onMove(ev) {
+    const dx = (ev.clientX - startX) / scale;
+    const dy = (ev.clientY - startY) / scale;
+    let [x0, y0, x1, y1] = orig;
+    const w = x1 - x0, h = y1 - y0;
+    x0 = clamp(x0 + dx, 0, pg.width - w); x1 = x0 + w;
+    y0 = clamp(y0 + dy, 0, pg.height - h); y1 = y0 + h;
+    pg.panels[idx] = [x0, y0, x1, y1].map(Math.round);
+    renderBoxes();
+    markEdited();
+  }
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+function startResize(e, idx, corner) {
+  e.preventDefault();
+  e.stopPropagation();
+  const pg = data.pages[curPage];
+  const orig = pg.panels[idx].slice();
+  const startX = e.clientX, startY = e.clientY;
+  function onMove(ev) {
+    const dx = (ev.clientX - startX) / scale;
+    const dy = (ev.clientY - startY) / scale;
+    let [x0, y0, x1, y1] = orig;
+    if (corner.includes('w')) x0 = clamp(orig[0] + dx, 0, x1 - 20);
+    if (corner.includes('e')) x1 = clamp(orig[2] + dx, x0 + 20, pg.width);
+    if (corner.includes('n')) y0 = clamp(orig[1] + dy, 0, y1 - 20);
+    if (corner.includes('s')) y1 = clamp(orig[3] + dy, y0 + 20, pg.height);
+    pg.panels[idx] = [x0, y0, x1, y1].map(Math.round);
+    renderBoxes();
+    markEdited();
+  }
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+}
+
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+
+function deleteSelected() {
+  if (selectedIdx < 0) return;
+  const pg = data.pages[curPage];
+  pg.panels.splice(selectedIdx, 1);
+  selectedIdx = -1;
+  delBtn.disabled = true;
+  renderBoxes();
+  markEdited();
+  statusEl.textContent = `${pg.panels.length} case(s) — ${pg.file}`;
+}
+
+// Création d'une nouvelle case par glisser sur le canevas
+stage.addEventListener('mousedown', (e) => {
+  if (drawing !== 'armed') return;
+  if (e.target.tagName !== 'IMG' && e.target.id !== 'stage') return;
+  e.preventDefault();
+  const rect = stage.getBoundingClientRect();
+  const sx = (e.clientX - rect.left) / scale;
+  const sy = (e.clientY - rect.top) / scale;
+  const tmp = document.createElement('div');
+  tmp.className = 'box selected';
+  stage.appendChild(tmp);
+  function onMove(ev) {
+    const cx = (ev.clientX - rect.left) / scale;
+    const cy = (ev.clientY - rect.top) / scale;
+    const box = [Math.min(sx, cx), Math.min(sy, cy), Math.max(sx, cx), Math.max(sy, cy)];
+    positionBox(tmp, box);
+    tmp._box = box;
+  }
+  function onUp() {
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    tmp.remove();
+    drawing = null;
+    stage.style.cursor = '';
+    const pg = data.pages[curPage];
+    if (tmp._box && (tmp._box[2] - tmp._box[0] > 15) && (tmp._box[3] - tmp._box[1] > 15)) {
+      pg.panels.push(tmp._box.map(Math.round));
+      selectedIdx = pg.panels.length - 1;
+      delBtn.disabled = false;
+      renderBoxes();
+      markEdited();
+      statusEl.textContent = `${pg.panels.length} case(s) — ${pg.file}`;
+    }
+  }
+  document.addEventListener('mousemove', onMove);
+  document.addEventListener('mouseup', onUp);
+});
+
+function saveJson() {
+  const blob = new Blob([JSON.stringify(data, null, 1)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'boxes.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 5000);
+  alert("boxes.json téléchargé. Remplacez le fichier boxes.json dans le dossier de relecture par celui-ci (dossier Téléchargements), puis lancez la commande --from-review.");
+}
+</script>
+</body>
+</html>
