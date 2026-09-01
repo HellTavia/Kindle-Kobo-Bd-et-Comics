@@ -5,18 +5,23 @@ Découpe une BD ou un comics case par case pour la rendre lisible en plein écra
 Chaque case détectée devient une page à part entière du fichier de sortie, redimensionnée à la taille exacte de l'écran de la liseuse sans être déformée (même échelle en largeur et en hauteur, avec des marges blanches si besoin plutôt qu'un étirement).
 
 Comment ça marche
+
 Le script ouvre chaque page de l'album (CBZ/CBR/PDF/dossier d'images).
 Il détecte automatiquement les cases (analyse du fond clair autour de chaque case + des bordures noires qui les séparent).
 Chaque case est recadrée, redimensionnée à la résolution de l'écran visé, puis toutes les cases sont réassemblées dans l'ordre de lecture en un nouveau fichier CBZ, prêt à copier sur la liseuse.
 
 La détection est automatique et fonctionne bien sur la majorité des pages, mais reste une heuristique : sur certaines mises en page inhabituelles (cases collées sans espace blanc, grandes illustrations pleine page, bulles qui débordent), le découpage peut être imparfait. D'où l'outil de relecture manuelle (voir plus bas) pour corriger ponctuellement sans tout refaire.
 
-Fichiers du projet
-Fichier	Rôle
+Fichiers du projet:
+
 bd_to_kobo.py	Le cœur du projet : détection des cases + génération du CBZ, en ligne de commande
+
 bd_to_kobo_gui.py	Interface graphique pour bd_to_kobo.py (mêmes fonctions, sans taper de commandes)
+
 revue.html	Outil de relecture visuelle : corriger les cases à la souris avant l'export final
+
 libra_to_paperwhite.py	Convertit un CBZ déjà découpé vers une autre résolution/liseuse, sans redétection (rapide)
+
 fix_red_background.py	Corrige a posteriori un bug d'affichage (fond rouge au lieu de blanc) sur un CBZ déjà généré
 
 bd_to_kobo_gui.py a besoin de bd_to_kobo.py dans le même dossier. bd_to_kobo.py copie automatiquement revue.html dans le dossier de relecture — gardez donc les deux ensemble aussi.
