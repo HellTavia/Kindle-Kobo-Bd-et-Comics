@@ -37,12 +37,14 @@ manuelle (voir plus bas) pour corriger ponctuellement sans tout refaire.
 | `bd_to_kobo_gui.py` | Interface graphique pour `bd_to_kobo.py` (mêmes fonctions, sans taper de commandes) |
 | `revue.html` | Outil de relecture visuelle : corriger les cases à la souris avant l'export final |
 | `libra_to_paperwhite.py` | Convertit un CBZ **déjà découpé** vers une autre résolution/liseuse, sans redétection (rapide) |
-| `fix_red_background.py` | Corrige a posteriori un bug d'affichage (fond rouge au lieu de blanc) sur un CBZ déjà généré |
+| `fix_red_background.py` | Corrige a posteriori un bug d'affichage (fond rouge au lieu de blanc) sur un CBZ déjà généré — intégré aussi dans `bd_to_kobo_gui.py` |
 | `build_windows_exe.bat` | Compile `bd_to_kobo_gui.py` en `.exe` Windows autonome (voir [Version Windows sans Python](#version-windows-sans-python-exe)) |
 
-`bd_to_kobo_gui.py` a besoin de `bd_to_kobo.py` dans le même dossier.
-`bd_to_kobo.py` copie automatiquement `revue.html` dans le dossier de
-relecture — gardez donc les deux ensemble aussi.
+`bd_to_kobo_gui.py` a besoin de `bd_to_kobo.py` **et** `fix_red_background.py`
+dans le même dossier (la section de correction du fond rouge de l'interface
+graphique ne s'active que si `fix_red_background.py` est trouvé). `bd_to_kobo.py`
+copie automatiquement `revue.html` dans le dossier de relecture — gardez donc
+tous ces fichiers ensemble.
 
 ## Installation
 
@@ -84,8 +86,13 @@ python3 bd_to_kobo.py album.cbz sortie.cbz --width 1264 --height 1680 --quality 
 ```bash
 python3 bd_to_kobo_gui.py
 ```
-Choisir le fichier source, un profil de liseuse (ou des dimensions
-personnalisées), puis cliquer sur *Générer*.
+L'interface propose quatre sections indépendantes :
+1. **Conversion directe** — choisir le fichier source, un profil de liseuse
+   (ou des dimensions personnalisées), et générer le CBZ en un clic
+2. **Export pour relecture** — voir Option C ci-dessous
+3. **Construction depuis un dossier de relecture** — voir Option C ci-dessous
+4. **Correction du fond rouge** — sur un CBZ déjà généré, sans rien
+   redécouper (voir [plus bas](#corriger-un-cbz-déjà-généré-fond-rouge-au-lieu-de-blanc))
 
 ### Option C — Avec relecture manuelle (recommandé pour un premier essai)
 
@@ -153,6 +160,12 @@ Un bug d'affichage (corrigé depuis dans `bd_to_kobo.py`) pouvait donner un
 fond rouge pur autour des cases sur les exports en couleur. Pour rattraper
 des fichiers déjà générés sans tout refaire :
 
+**Via l'interface graphique** (`bd_to_kobo_gui.py`, ou `BD_vers_Liseuse.exe`
+sous Windows) : section *"4. Corriger un CBZ déjà généré"* — choisir le CBZ
+concerné, choisir où enregistrer le résultat, cliquer sur *"Corriger le fond
+rouge"*.
+
+**En ligne de commande :**
 ```bash
 python3 fix_red_background.py entree.cbz sortie_corrigee.cbz
 # ou plusieurs fichiers d'un coup :
@@ -185,7 +198,7 @@ Points à savoir :
 - Premier lancement parfois un peu lent : le `.exe` se décompresse dans un
   dossier temporaire à chaque démarrage.
 - Windows Defender (ou l'antivirus) peut afficher un avertissement au
-  premier lancement (classique avec les `.exe` générés par intégrant du python dedans) —
+  premier lancement (classique avec les `.exe` générés par PyInstaller) —
   cliquer sur *Plus d'infos* → *Exécuter quand même*.
 
 ### Recompiler soi-même le .exe
@@ -195,7 +208,7 @@ ci-dessus). Utile seulement après une modification du code source, pour
 générer une nouvelle version :
 
 **1.** Mettre ensemble dans un même dossier : `build_windows_exe.bat`,
-`bd_to_kobo.py`, `bd_to_kobo_gui.py`, `revue.html`
+`bd_to_kobo.py`, `bd_to_kobo_gui.py`, `revue.html`, `fix_red_background.py`
 
 **2.** Double-cliquer sur `build_windows_exe.bat` (sur un PC Windows avec
 Python installé). Le script installe tout seul les dépendances nécessaires
