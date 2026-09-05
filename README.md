@@ -185,7 +185,7 @@ Points à savoir :
 - Premier lancement parfois un peu lent : le `.exe` se décompresse dans un
   dossier temporaire à chaque démarrage.
 - Windows Defender (ou l'antivirus) peut afficher un avertissement au
-  premier lancement (classique avec les `.exe` générés par PyInstaller) —
+  premier lancement (classique avec les `.exe` générés par intégrant du python dedans) —
   cliquer sur *Plus d'infos* → *Exécuter quand même*.
 
 ### Recompiler soi-même le .exe
