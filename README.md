@@ -14,8 +14,8 @@ si besoin plutôt qu'un étirement).
 > `BD_vers_Liseuse.exe` depuis l'onglet [Releases](../../releases) — voir
 > [Version Windows sans Python](#version-windows-sans-python-exe).
 
-> **Sur Android ?** Une application native (Kotlin, Android Studio) existe
-> aussi, avec relecture manuelle tactile — voir
+> **Sur Android ?** Téléchargez directement `BD_vers_Liseuse.apk` depuis
+> l'onglet [Releases](../../releases) — voir
 > [Version Android](#version-android-application-native).
 
 ## Comment ça marche
@@ -224,10 +224,9 @@ remplacer celui de la Release.
 ## Version Android (application native)
 
 Une application Android native (Kotlin) existe en parallèle des scripts
-Python, dans `BD_vers_Liseuse_Android.zip` — un projet Android Studio complet,
-pas de dépendance à Python sur le téléphone. Elle reprend le même algorithme
-de détection des cases (réimplémenté en Kotlin) et propose les deux mêmes
-façons de faire que la version bureau :
+Python, avec les mêmes fonctions que la version bureau — pas besoin de
+Python sur le téléphone. Elle reprend le même algorithme de détection des
+cases (réimplémenté en Kotlin) et propose deux modes :
 
 - **Conversion directe** — choisir un `.cbz`, un profil de liseuse
   (Libra Colour / Paperwhite 2 / personnalisé), générer.
@@ -237,10 +236,23 @@ façons de faire que la version bureau :
   (bouton *+ Ajouter* puis dessiner au doigt) ou en supprimer (bouton
   *Supprimer*), avant de générer le CBZ final.
 
-### Installation (compilation par soi-même)
+### Installation
 
-Il n'y a pas d'APK prêt à l'emploi pour l'instant — l'application se compile
-via Android Studio :
+Téléchargez **`BD_vers_Liseuse.apk`** depuis l'onglet
+[Releases](../../releases) de ce dépôt et installez-le sur le téléphone.
+
+Android bloque par défaut l'installation d'applications qui ne viennent pas
+du Play Store : au premier lancement du fichier `.apk`, un message
+d'avertissement apparaît — autoriser l'installation depuis cette source
+(le nom exact du réglage dépend de la version d'Android : *"Installer des
+applications inconnues"*, *"Sources inconnues"*...).
+
+### Recompiler soi-même l'APK
+
+Pas nécessaire pour un usage normal (téléchargez plutôt l'APK tout fait
+ci-dessus). Utile seulement après une modification du code source, pour
+générer une nouvelle version — le projet Android Studio complet est dans
+`BD_vers_Liseuse_Android.zip` :
 
 **1.** Dézipper `BD_vers_Liseuse_Android.zip`
 
@@ -249,8 +261,8 @@ via Android Studio :
 
 **3.** Laisser Gradle synchroniser (télécharge les dépendances tout seul)
 
-**4.** **Run ▶** sur un émulateur ou un téléphone connecté en USB (mode
-développeur + débogage USB activés sur le téléphone)
+**4.** **Build → Generate Signed Bundle / APK** (ou **Run ▶** directement sur
+un téléphone/émulateur pour tester sans générer de fichier à distribuer)
 
 Si Android Studio propose de mettre à jour Gradle/AGP automatiquement à
 l'ouverture, c'est normal et sans risque à accepter.
@@ -263,6 +275,3 @@ l'ouverture, c'est normal et sans risque à accepter.
   limite (l'image pleine résolution est chargée en mémoire pendant le
   traitement) — sans effet observé sur des téléphones récents, à surveiller
   sur du matériel plus ancien.
-- Pas de génération de fichier `.apk` prête à distribuer pour l'instant :
-  chacun compile son propre exécutable via Android Studio (comme pour la
-  compilation du `.exe` Windows).
