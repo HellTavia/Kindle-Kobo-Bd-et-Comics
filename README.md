@@ -14,6 +14,10 @@ si besoin plutôt qu'un étirement).
 > `BD_vers_Liseuse.exe` depuis l'onglet [Releases](../../releases) — voir
 > [Version Windows sans Python](#version-windows-sans-python-exe).
 
+> **Sur Android ?** Une application native (Kotlin, Android Studio) existe
+> aussi, avec relecture manuelle tactile — voir
+> [Version Android](#version-android-application-native).
+
 ## Comment ça marche
 
 1. Le script ouvre chaque page de l'album (CBZ/CBR/PDF/dossier d'images).
@@ -198,7 +202,7 @@ Points à savoir :
 - Premier lancement parfois un peu lent : le `.exe` se décompresse dans un
   dossier temporaire à chaque démarrage.
 - Windows Defender (ou l'antivirus) peut afficher un avertissement au
-  premier lancement (classique avec les `.exe` intégrant du python en leur sein) —
+  premier lancement (classique avec les `.exe` générés par PyInstaller) —
   cliquer sur *Plus d'infos* → *Exécuter quand même*.
 
 ### Recompiler soi-même le .exe
@@ -216,3 +220,49 @@ Python installé). Le script installe tout seul les dépendances nécessaires
 
 **3.** `BD_vers_Liseuse.exe` apparaît dans le dossier à la fin, prêt à
 remplacer celui de la Release.
+
+## Version Android (application native)
+
+Une application Android native (Kotlin) existe en parallèle des scripts
+Python, dans `BD_vers_Liseuse_Android.zip` — un projet Android Studio complet,
+pas de dépendance à Python sur le téléphone. Elle reprend le même algorithme
+de détection des cases (réimplémenté en Kotlin) et propose les deux mêmes
+façons de faire que la version bureau :
+
+- **Conversion directe** — choisir un `.cbz`, un profil de liseuse
+  (Libra Colour / Paperwhite 2 / personnalisé), générer.
+- **Relecture manuelle avant export** — équivalent tactile de `revue.html` :
+  un écran affiche chaque page avec les cases détectées, on peut les
+  déplacer (glisser), les redimensionner (tirer un coin), en ajouter
+  (bouton *+ Ajouter* puis dessiner au doigt) ou en supprimer (bouton
+  *Supprimer*), avant de générer le CBZ final.
+
+### Installation (compilation par soi-même)
+
+Il n'y a pas d'APK prêt à l'emploi pour l'instant — l'application se compile
+via Android Studio :
+
+**1.** Dézipper `BD_vers_Liseuse_Android.zip`
+
+**2.** Android Studio → **File → Open** → sélectionner le dossier
+`BD_vers_Liseuse` obtenu (celui qui contient `settings.gradle.kts`)
+
+**3.** Laisser Gradle synchroniser (télécharge les dépendances tout seul)
+
+**4.** **Run ▶** sur un émulateur ou un téléphone connecté en USB (mode
+développeur + débogage USB activés sur le téléphone)
+
+Si Android Studio propose de mettre à jour Gradle/AGP automatiquement à
+l'ouverture, c'est normal et sans risque à accepter.
+
+### Limites de la version Android
+
+- Accepte les fichiers `.cbz`/`.zip` (via le sélecteur de fichiers du
+  téléphone). Pas de support `.pdf` ni `.cbr` pour l'instant.
+- Sur des scans très haute résolution, la mémoire du téléphone peut devenir
+  limite (l'image pleine résolution est chargée en mémoire pendant le
+  traitement) — sans effet observé sur des téléphones récents, à surveiller
+  sur du matériel plus ancien.
+- Pas de génération de fichier `.apk` prête à distribuer pour l'instant :
+  chacun compile son propre exécutable via Android Studio (comme pour la
+  compilation du `.exe` Windows).
