@@ -228,7 +228,7 @@ Python, avec les mêmes fonctions que la version bureau — pas besoin de
 Python sur le téléphone. Elle reprend le même algorithme de détection des
 cases (réimplémenté en Kotlin) et propose deux modes :
 
-- **Conversion directe** — choisir un `.cbz`, un profil de liseuse
+- **Conversion directe** — choisir un `.cbz` ou `.pdf`, un profil de liseuse
   (Libra Colour / Paperwhite 2 / personnalisé), générer.
 - **Relecture manuelle avant export** — équivalent tactile de `revue.html` :
   un écran affiche chaque page avec les cases détectées, on peut les
@@ -269,8 +269,7 @@ l'ouverture, c'est normal et sans risque à accepter.
 
 ### Limites de la version Android
 
-- Accepte les fichiers `.cbz`/`.zip` (via le sélecteur de fichiers du
-  téléphone). Pas de support `.pdf` ni `.cbr` pour l'instant.
+- Accepte les fichiers `.cbz`/`.zip` et `.pdf` seulement pas de cbr
 - Sur des scans très haute résolution, la mémoire du téléphone peut devenir
   limite (l'image pleine résolution est chargée en mémoire pendant le
   traitement) — sans effet observé sur des téléphones récents, à surveiller
